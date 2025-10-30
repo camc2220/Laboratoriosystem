@@ -1,0 +1,46 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: LabotecDb
+      MYSQL_USER: labotec
+      MYSQL_PASSWORD: SuperClave!2025
+      MYSQL_ROOT_PASSWORD: root
+    ports: ["3307:3306"]
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 5s
+      retries: 10
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: "azurite-blob --loose --blobHost 0.0.0.0"
+    ports: ["10000:10000"]
+
+  api:
+    build: ./Labotec.Api
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Server=mysql;Port=3306;Database=LabotecDb;User=labotec;Password=SuperClave!2025;"
+      Jwt__Issuer: "Labotec.Api"
+      Jwt__Audience: "Labotec.Client"
+      Jwt__Key: "EsteEsUnSecretoJwtDeAlMenos32Caracteres!!"
+      AzureBlob__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+      AzureBlob__Container: "labresults"
+      ASPNETCORE_URLS: "http://+:8080"
+    ports: ["8080:8080"]
+
+  web:
+    build: ./labotec-web
+    environment:
+      VITE_API_BASE: "http://api:8080"
+    ports: ["8081:80"]
+    depends_on:
+      - api
+
+volumes:
+  mysql_data:

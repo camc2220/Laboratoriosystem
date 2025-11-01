@@ -1,4 +1,5 @@
-const base = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
+const base = import.meta.env.VITE_API_BASE
+  || (import.meta.env.PROD && typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080')
 function headers(){
   const token = localStorage.getItem('token')
   return token ? { 'Authorization': 'Bearer '+token } : {}
